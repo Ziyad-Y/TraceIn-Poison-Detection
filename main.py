@@ -25,7 +25,7 @@ for i in range(15):
 print(len(dataset))   
 
 
-image, label = dataset[20]
+image, label = dataset[13]
 
 # Convert the PyTorch tensor to a NumPy array and then to a PIL image
 image_np = image.numpy()
