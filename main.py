@@ -19,8 +19,9 @@ labels_loader, dataset = r.get_data("CIFAR10")
 
 image, label = dataset[0]
 
+
 # Convert the PyTorch tensor to a NumPy array and then to a PIL image
-image_np = image.numpy()
+image_np = dataset.data[0].numpy()
 image_np = image_np.transpose((1, 2, 0))  # Convert from CxHxW to HxWxC
 plt.imshow(image_np, cmap='gray')  
 plt.title(f"Label: {label}")

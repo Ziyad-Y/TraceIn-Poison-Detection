@@ -26,6 +26,7 @@ class resnet18_poisoned:
     def get_data(self, dataset):
         if dataset=="MNIST":
             train_set = datasets.MNIST(root='data',train=True,download=True,transform=transforms.ToTensor()) 
+            self.random_label_poison(train_set,0.1)
             train_loader = DataLoader(train_set , batch_size=64, shuffle=True)
 
 
@@ -65,7 +66,4 @@ class resnet18_poisoned:
 
     def clean_label_poison(self):
         pass
-    
-    def fgsm(self):
-        model=models.resnet18()     
-        model.eval()
+
