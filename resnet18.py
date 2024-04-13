@@ -7,15 +7,22 @@ import torch.nn as nn
 import torchvision.models as models  
 from torchvision import datasets    
 from torch.utils.data import DataLoader
-import random
+import matplotlib.pyplot as plt 
+from CleanLabel import *
+from PIL import Image
+def grayscale_to_rgb(img):
+    img_rgb = Image.merge('RGB', (img, img, img))
+    return img_rgb
 
-class resnet18_poisoned:
+class train_poisoned:
     def __init__(self, epochs=None):
         self.epochs=epochs
-        self.poisonIdx=[]  
-        self.Original_dataset=None  
-        self.Poisoned_dataset=None  
-             
+        self.poisonIdx=[]
+        self.trainset=None  
+        self.testest=None   
+        self.Train_Loader=None  
+        self.Test_Loader=None   
+        self.originalImages=[]
        
 
 
@@ -24,46 +31,81 @@ class resnet18_poisoned:
         pass
     
     def get_data(self, dataset):
+        weights= models.ResNet18_Weights.DEFAULT  
+        preprocess = weights.transforms()
+        transform=transforms.Compose([  
+            transforms.Resize((224,224)),  
+            transforms.Grayscale(num_output_channels=1),
+            transforms.ToTensor()    
+        ])
+        
         if dataset=="MNIST":
-            train_set = datasets.MNIST(root='data',train=True,download=True,transform=transforms.ToTensor()) 
-            self.random_label_poison(train_set,0.1)
-            train_loader = DataLoader(train_set , batch_size=64, shuffle=True)
+            self.trainset = datasets.MNIST(root='data',train=True,download=True,transform=transform)  
+            
 
-
+        #implement posison if needed
         elif dataset=="CIFAR10":
-            train_set =datasets.CIFAR10(root='data',train=True,download=True,transform=transforms.ToTensor())   
-            train_loader = DataLoader(train_set , batch_size=64, shuffle=True)
-
-
+            self.trainset =datasets.CIFAR10(root='data',train=True,download=True,transform=transforms)   
+            
         else:
             print("ERROR: Invalid data set")
             exit(-1)
 
-        return train_loader,train_set   
+    def random_label_poison(self, percentage, desired):
+        np.random.seed(800)
+        remainder =[i for i in range(len(self.trainset)) if self.trainset.targets[i]!= desired]
+        count =int(percentage * len(remainder))
+        poison_indices = np.random.choice(len(remainder),count, replace=False)  
+        for i in poison_indices:
+            index = remainder[i]
+            self.trainset.targets[index]=desired  
+            self.poisonIdx.append(index)  
 
-    def random_label_poison(self, train_set,percentage, desired):
-        random.seed(800)
-        end = (percentage * len(train_set))
-        count =0
-        while True:
-            i=random.randint(0, len(train_set)-1)
-            if train_set.targets[i] != desired and i not in self.poisonIdx :
-                train_set.targets[i] = desired   
-                self.poisonIdx.append(i)
-                count+=1    
-            if count == end:
+           
+    
+    def target_label_poison(self, target, desired):
+          for i in range(len(self.trainset)):
+            if self.trainset.targets[i] == target:
+                self.trainset.targets[i] = desired 
+                self.poisonIdx.append(i)  
+
+          
+
+
+    def clean_label_poison(self, target, beta):
+        p = Poison(beta)
+        temp = []
+        desired_img = None
+        for i in range(len(self.trainset)):
+            if self.trainset.targets[i] == 9:
+                desired_img,_ = self.trainset[i]
                 break
 
-
-    
-    
-    def target_label_poison(self, train_set, target, desired):
-          for i in range(len(train_set)):
-            if train_set.targets[i] == target:
-                train_set.targets[i] = desired 
+        if desired_img is None:
+            print("Desired image not found.")
+            return
+        
+        for i in range(len(self.trainset)):
+            if self.trainset.targets[i] == target:
                 self.poisonIdx.append(i)
+                image, label = self.trainset[i]
+                poisoned_img = p.generate_poison(image, desired_img)
+                temp.append((poisoned_img.squeeze(0), target))  
+            else:
+                temp.append(self.trainset[i])
+
+        self.trainset = temp
+                
+
+            
+       
+       
+
+        
 
 
-    def clean_label_poison(self):
-        pass
+              
+              
+
+        
 
