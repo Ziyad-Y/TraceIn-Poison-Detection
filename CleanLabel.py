@@ -7,11 +7,11 @@ import torch.nn as nn
 import torchvision.models as models  
 from torchvision import datasets    
 from torch.utils.data import DataLoader 
-
+from Model import *
 class Poison:
     
     def __init__(self, beta):
-        self.model=models.resnet18(weights=models.ResNet18_Weights.DEFAULT )   
+        self.model=CNN()   
         self.optimizer = torch.optim.SGD(self.model.parameters(),lr=0.01)   
         self.Lp=nn.CrossEntropyLoss()
         self.beta=beta  

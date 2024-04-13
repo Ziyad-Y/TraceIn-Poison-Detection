@@ -1,4 +1,4 @@
-from resnet18 import *
+from train import *
 r = train_poisoned()  
 r.get_data("MNIST")
 r.clean_label_poison(3,0.5)
