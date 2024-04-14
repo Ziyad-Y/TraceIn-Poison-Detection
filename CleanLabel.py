@@ -6,31 +6,26 @@ import torch.optim as optim
 import torch.nn as nn   
 import torchvision.models as models  
 from torchvision import datasets    
+import torch.nn.functional as F
 from torch.utils.data import DataLoader 
-from Model import *
+
+
+
 class Poison:
     
-    def __init__(self, beta):
-        self.model=CNN()   
-        self.optimizer = torch.optim.SGD(self.model.parameters(),lr=0.01)   
-        self.Lp=nn.CrossEntropyLoss()
+    def __init__(self, beta):      
         self.beta=beta  
+        self.model=models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+        self.model.conv1= nn.Conv2d(1,64,kernel_size=7,stride=1,padding=3,bias=False)  
+        num_feat = model.fc.in_features  
+        self.model.fc=nn.Linear(num_feat,10)   
+        self.criterion=nn.MSELoss()
 
-    def generate_poison(self,target_image,desired_image):
-        self.model.train()  
-        target_output = self.model(target_image)  
-        desired_clone = desired_image.clone().detach().requires_grad_(True)  
+    def generate_poison(self,target_image,desired_image,lr):
+        self.model.train()
 
-        for _ in range(100):
-            self.optimizer.zero_grad()  
-            output=self.model(desired_clone)  
-            loss=self.Lp(output,target_output.argmax().unsqueeze(0))  
-            loss.backwards()   
-            gradient= desired_clone.grad.data   
-            desired_clone = (desired_clone - 0.1 * gradient) / (1 + self.beta * 0.1)  
-
-        return desired_clone.detach()
-
+        
+        
 
 
 

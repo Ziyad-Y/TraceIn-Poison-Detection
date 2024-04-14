@@ -1,13 +1,3 @@
-import torch  
-import numpy as np   
-import torchvision   
-import torchvision.transforms as transforms  
-import torch.optim as optim  
-import torch.nn as nn   
-import torchvision.models as models  
-from torchvision import datasets    
-from torch.utils.data import DataLoader
-import matplotlib.pyplot as plt 
 from CleanLabel import *
 
 
@@ -16,37 +6,21 @@ class train_poisoned:
         self.epochs=epochs
         self.poisonIdx=[]
         self.trainset=None  
-        self.testest=None   
+        self.testset=None   
         self.Train_Loader=None  
         self.Test_Loader=None   
         self.originalImages=[]
        
 
 
-    def train(self):
-          
-        pass
+   
     
-    def get_data(self, dataset):
-        weights= models.ResNet18_Weights.DEFAULT  
-        preprocess = weights.transforms()
-        transform=transforms.Compose([  
-            transforms.Resize((224,224)),  
-            transforms.Grayscale(num_output_channels=1),
-            transforms.ToTensor()    
-        ])
+    def get_data(self):
+        trasnform=transforms.ToTensor()
+        self.trainset = datasets.MNIST(root='data',train=True,download=True,transform=transform)
+        self.testset = datasets.MNIST(root='data',train=True,download=True,transform=transform)  
         
-        if dataset=="MNIST":
-            self.trainset = datasets.MNIST(root='data',train=True,download=True,transform=transform)  
-            
-
-        #implement posison if needed
-        elif dataset=="CIFAR10":
-            self.trainset =datasets.CIFAR10(root='data',train=True,download=True,transform=transforms)   
-            
-        else:
-            print("ERROR: Invalid data set")
-            exit(-1)
+        
 
     def random_label_poison(self, percentage, desired):
         np.random.seed(800)
@@ -56,7 +30,9 @@ class train_poisoned:
         for i in poison_indices:
             index = remainder[i]
             self.trainset.targets[index]=desired  
-            self.poisonIdx.append(index)  
+            self.poisonIdx.append(index)
+        self.Train_Loader=DataLoader(self.trainset,batch_size=256,shuffle=True) 
+        self.Test_Loader=DataLoader(self.testset)  
 
            
     
@@ -86,7 +62,7 @@ class train_poisoned:
             if self.trainset.targets[i] == target:
                 self.poisonIdx.append(i)
                 image, label = self.trainset[i]
-                poisoned_img = p.generate_poison(image, desired_img)
+                poisoned_img = p.generate_poison(image, desired_img,0.1)
                 temp.append((poisoned_img.squeeze(0), target))  
             else:
                 temp.append(self.trainset[i])
