@@ -1,73 +1,139 @@
 from CleanLabel import *
-
+import os
 
 class train_poisoned:
     def __init__(self, epochs=None):
         self.epochs=epochs
         self.poisonIdx=[]
-        self.trainset=None  
-        self.testset=None   
-        self.Train_Loader=None  
-        self.Test_Loader=None   
-        self.originalImages=[]
+
        
 
 
    
-    
-    def get_data(self):
-        trasnform=transforms.ToTensor()
-        self.trainset = datasets.MNIST(root='data',train=True,download=True,transform=transform)
-        self.testset = datasets.MNIST(root='data',train=True,download=True,transform=transform)  
+ 
         
         
 
-    def random_label_poison(self, percentage, desired):
+    def random_label_poison(self, trainset,percentage, desired):
         np.random.seed(800)
-        remainder =[i for i in range(len(self.trainset)) if self.trainset.targets[i]!= desired]
+        remainder =[i for i, (image,label) in enumerate(trainset) if label!= desired]
         count =int(percentage * len(remainder))
         poison_indices = np.random.choice(len(remainder),count, replace=False)  
         for i in poison_indices:
             index = remainder[i]
-            self.trainset.targets[index]=desired  
+            image,label= trainset[index]       
+            trainset[index] = (image,desired)  
             self.poisonIdx.append(index)
-        self.Train_Loader=DataLoader(self.trainset,batch_size=256,shuffle=True) 
-        self.Test_Loader=DataLoader(self.testset)  
+     
+        
 
            
     
-    def target_label_poison(self, target, desired):
-          for i in range(len(self.trainset)):
-            if self.trainset.targets[i] == target:
-                self.trainset.targets[i] = desired 
-                self.poisonIdx.append(i)  
+    def target_label_poison(self, trainset,target, desired):
+
+        for idx,(image,label) in enumerate(trainset):
+          if label == target:
+            trainset[idx] = (image,desired) 
+            self.poisonIdx.append(idx) 
+
+        
+        
+        
 
           
 
 
-    def clean_label_poison(self, target, beta):
+    def clean_label_poison(self, trainset,target, beta):
         p = Poison(beta)
-        temp = []
         desired_img = None
-        for i in range(len(self.trainset)):
-            if self.trainset.targets[i] == 9:
-                desired_img,_ = self.trainset[i]
+        for image,label in trainset:
+            if label == 9:
+                desired_img= image.clone()
                 break
 
         if desired_img is None:
             print("Desired image not found.")
             return
         
-        for i in range(len(self.trainset)):
-            if self.trainset.targets[i] == target:
+        for i, (image,label) in enumerate(trainset):
+            if label == target:
+                #print(i)
                 self.poisonIdx.append(i)
-                image, label = self.trainset[i]
-                poisoned_img = p.generate_poison(image, desired_img,0.1)
-                temp.append((poisoned_img.squeeze(0), target))  
-            else:
-                temp.append(self.trainset[i])
 
-        self.trainset = temp
+                poisoned_img = p.generate_poison(image.view(1,1,28,28), desired_img.view(1,1,28,28),0.01)
+                trainset[i]=(poisoned_img.squeeze(dim=0), label) 
+          
+
+     
+        
+
+    def train(self):
+        transform = transforms.ToTensor()
+        trainset = datasets.MNIST(root='data', train=True, download=True, transform=transform)
+
+        train_loader = DataLoader(trainset, batch_size=256, shuffle=True)
+
+        model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+        model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=1, padding=3, bias=False)
+        num_feat = model.fc.in_features
+        model.fc = nn.Linear(num_feat, 10)
+
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+
+        print("Begin Train")
+        epochs = 50
+        for i in range(epochs):
+            if (i + 1) % 5 == 0:
+                print(f"Saving checkpoint {i+1}")
+                checkpoint = {
+                    'epoch': i + 1,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'loss': loss,
+                }
+                torch.save(checkpoint, f"Checkpoints/checkpoint{i}.pt")
+
+            for batch_idx, (image, label) in enumerate(train_loader):
+                output = model(image)
+                loss = criterion(output, label)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+        torch.save(model.state_dict(), "Checkpoints/resnet18.pt")
+
+ 
+
+
+    def test(self):
+        transform= transforms.ToTensor()
+        testset=datasets.MNIST(root="data",train=False,download=True, transform=transform)  
+        test_load=DataLoader(testset,batch_size=256,shuffle=False)  
+
+        model=models.resnet18()  
+        model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=1, padding=3, bias=False)
+        num_feat = model.fc.in_features
+        model.fc = nn.Linear(num_feat, 10) 
+
+        state_dict=torch.load("Checkpoints/resnet18.pt") 
+        model.load_state_dict(state_dict)
+
+        correct =0  
+        transform=transforms.ToTensor()
+        correct = 0
+        total = 0
+        with torch.no_grad():  
+            for images, labels in test_load:
+                outputs = model(images)  
+                _, predicted = torch.max(outputs, 1) 
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+        accuracy = correct / total
+        print("Accuracy of the model on the test images: %0.2f"%(100 * accuracy))
+
+
+        
                 
 
             
