@@ -1,8 +1,8 @@
-from train import *
+from utils import *
 import matplotlib.pyplot as plt
 import glob
 import csv
-r=train_poisoned()
+r=TraceIN_UTILS()
 
 transform = transforms.ToTensor() 
 
@@ -25,8 +25,8 @@ for i in range(len(y)):
     image,label = test[y[i]]   
     test_points.append((image,label))   
 
-r.clean_label_poison(train_points,3,0.25)
-f = open("clean","w")   
+r.clean_label_poison(train_points,9,3)
+f = open("test.csv","w")   
 w= csv.writer(f)   
 w.writerow(["Train","Test", "TraceINCP"])
 
