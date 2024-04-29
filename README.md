@@ -4,5 +4,7 @@
 ## Poison ##  
 select the poison
 ```python
-  r.random_label_poison(train_points,0.20)
+  r.random_label_poison(train_points,0.20) #or 
+  r.target_label_poison(train_points,3,9) #or
+  r.clean_label_poison(train_points,9,3)
 ```
