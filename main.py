@@ -26,7 +26,7 @@ for i in range(len(y)):
     image,label = test[y[i]]   
     test_points.append((image,label))   
 
-r.random_label_poison(train_points,0.20)
+r.clean_label_poison(train_points,9,3)
 f = open("rand.csv","w")   
 w= csv.writer(f)   
 w.writerow(["Train","Test", "TraceINCP"])
