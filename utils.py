@@ -28,16 +28,14 @@ class TraceIN_UTILS:
         
         
     #random label flipping
-    def random_label_poison(self, trainset,percentage, desired):
+    def random_label_poison(self, trainset,percentage):
         np.random.seed(800)
-        remainder =[i for i, (image,label) in enumerate(trainset) if label!= desired]
-        count =int(percentage * len(remainder))
-        poison_indices = np.random.choice(len(remainder),count, replace=False)  
+        count =int(percentage * len(trainset))
+        poison_indices = np.random.choice(len(trainset),count, replace=False)  
         for i in poison_indices:
-            index = remainder[i]
-            image,label= trainset[index]       
-            trainset[index] = (image,desired)  
-            self.poisonIdx.append(index)
+            image,label= trainset[i]       
+            trainset[i] = (image,np.random.randint(0,10))  
+            self.poisonIdx.append(i)
      
         
 

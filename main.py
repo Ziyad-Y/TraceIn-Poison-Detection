@@ -2,6 +2,7 @@ from utils import *
 import matplotlib.pyplot as plt
 import glob
 import csv
+p=0
 r=TraceIN_UTILS()
 
 transform = transforms.ToTensor() 
@@ -25,8 +26,8 @@ for i in range(len(y)):
     image,label = test[y[i]]   
     test_points.append((image,label))   
 
-r.clean_label_poison(train_points,9,3)
-f = open("test.csv","w")   
+r.random_label_poison(train_points,0.20)
+f = open("rand.csv","w")   
 w= csv.writer(f)   
 w.writerow(["Train","Test", "TraceINCP"])
 
@@ -68,6 +69,7 @@ for i,(z,z_l) in enumerate(train_points):
             TraceINCP+= product*eta  
         w.writerow([i,j,TraceINCP.item()])   
         if TraceINCP.item() > 300:
+         
             TraceCP_L.append((i,TraceINCP.item()))
 
 f.close()   
@@ -83,7 +85,7 @@ for i in unique:
 print(success/len(r.poisonIdx))   
     
 print(r.poisonIdx)
-            
+print(len(unique))       
 
 
 
